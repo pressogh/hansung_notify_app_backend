@@ -222,3 +222,68 @@ class classAPI(generics.GenericAPIView):
                 "class": class_json
             }
         )
+
+
+class calendarAPI(generics.GenericAPIView):
+    def get(self, request, *args, **kwargs):
+        conn = sqlite3.connect("user.db")
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM quiz ORDER BY due_date")
+        quiz_db = cur.fetchall()
+
+        cur.execute("SELECT count(class_name) from quiz")
+        quiz_count = cur.fetchall()[0][0]
+
+        cur.execute("SELECT * FROM homework ORDER BY due_date")
+        homework_db = cur.fetchall()
+
+        cur.execute("SELECT count(class_name) from homework")
+        homework_count = cur.fetchall()[0][0]
+
+        cur.close()
+        conn.close()
+
+        day = []
+        calendar_json = {}
+        for i in range(0, homework_count):
+            temp = {}
+            temp2 = []
+
+            temp['class_name'] = homework_db[i][0]
+            temp['title'] = homework_db[i][1]
+            temp['due_date'] = homework_db[i][2]
+
+            if calendar_json.get(homework_db[i][2][:10]) != None:
+                for j in range(0, len(calendar_json[homework_db[i][2][:10]])):
+                    temp2.append(calendar_json[homework_db[i][2][:10]][j])
+            temp2.append(temp)
+            calendar_json[homework_db[i][2][:10]] = temp2
+            day.append(homework_db[i][2][:10])
+
+        for i in range(0, quiz_count):
+            temp = {}
+            temp2 = []
+
+            temp['class_name'] = quiz_db[i][0]
+            temp['title'] = quiz_db[i][1]
+            temp['due_date'] = quiz_db[i][2]
+
+            if calendar_json.get(quiz_db[i][2][:10]) != None:
+                for j in range(0, len(calendar_json[quiz_db[i][2][:10]])):
+                    temp2.append(calendar_json[quiz_db[i][2][:10]][j])
+            temp2.append(temp)
+            calendar_json[quiz_db[i][2][:10]] = temp2
+            day.append(quiz_db[i][2][:10])
+
+
+        day = set(day)
+        day = list(day)
+        day.sort()
+        
+        return Response(
+            {
+                "calendar": calendar_json,
+                "day": day
+            }
+        )

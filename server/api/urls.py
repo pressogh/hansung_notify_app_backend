@@ -11,4 +11,5 @@ urlpatterns = [
     path('user/quiz', quizAPI.as_view()),
     path('user/notice', noticeAPI.as_view()),
     path('user/class', classAPI.as_view()),
+    path('user/calendar', calendarAPI.as_view()),
 ]
