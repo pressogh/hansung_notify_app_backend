@@ -20,6 +20,9 @@ def make_db():
     conn.execute(
         "CREATE TABLE IF NOT EXISTS user_data(class_name text, division text, professor text, class_link text, class_link_num text, notice_link_num text)"
     )
+    cur.execute(
+        "CREATE TABLE IF NOT EXISTS info(updated_time text)"
+    )
 
     cur.execute(
         "CREATE TABLE IF NOT EXISTS homework(class_name text, title text, due_date text, status text, grade text, link text)"
@@ -34,6 +37,19 @@ def make_db():
         "CREATE TABLE IF NOT EXISTS quiz(class_name text, title text, due_date text, grade text, link text)"
     )
 
+def drop_db():
+    cur.execute(
+        "DROP TABLE IF EXISTS homework"
+    )
+    cur.execute(
+        "DROP TABLE IF EXISTS file"
+    )
+    cur.execute(
+        "DROP TABLE IF EXISTS notice"
+    )
+    cur.execute(
+        "DROP TABLE IF EXISTS quiz"
+    )
 
 def get_class():
     cur.execute("SELECT * FROM user_data")
@@ -52,7 +68,7 @@ def get_class():
                 division.append(temp[temp.find("[") + 1])
                 professor.append(temp[temp.find("]") + 1:])
                 class_link.append(i["href"])
-                class_link_num.append(i["href"][-5:])
+                class_link_num.append(i["href"][46:])
 
         for i in range(0, len(class_name)):
             professor[i] = professor[i].replace("NEW", "")
@@ -60,7 +76,6 @@ def get_class():
         for i in range(0, len(class_name)):
             notice_temp = session.get("http://learn.hansung.ac.kr/course/view.php?id=" + class_link_num[i])
             notice_temp_soup = bs4(notice_temp.text, 'lxml')
-            print("http://learn.hansung.ac.kr/course/view.php?id=" + class_link_num[i])
 
             notice_num = notice_temp_soup.select('div.activityinstance > a')
             notice_link.append(notice_num[0]["href"])
@@ -77,7 +92,7 @@ def get_class():
         notice_link.clear()
 
 
-def get_var_in_db():
+def get_var():
     cur.execute("SELECT class_name, class_link_num, notice_link_num FROM user_data")
     lt = cur.fetchall()
 
@@ -176,15 +191,11 @@ def get_attendance():
             print(rowspan[j]["rowspan"])
         print('\n')
 
+def get_grade():
+    pass
+
 if __name__ == "__main__":
-    f = open("./temp.txt", 'w', -1, 'utf-8')
-
     start = time.time()
-    # connect db
-    conn = sqlite3.connect("user.db")
-    cur = conn.cursor()
-
-    make_db()
 
     header = {
         'Referer': 'https://learn.hansung.ac.kr/login.php',
@@ -197,6 +208,13 @@ if __name__ == "__main__":
         'rememberusername': 'on'
     }
 
+    # connect db
+    conn = sqlite3.connect(data['username'] + ".db")
+    cur = conn.cursor()
+
+    drop_db()
+    make_db()
+
     session = requests.Session()
     session.post("https://learn.hansung.ac.kr/login/index.php", headers=header, data=data)
 
@@ -208,21 +226,20 @@ if __name__ == "__main__":
     class_link_num = []
     notice_link = []
 
+
     get_class()
 
     cur.execute("SELECT count(class_name) from user_data")
     class_count = cur.fetchall()
     class_count = class_count[0][0]
 
-    get_var_in_db()
+    get_var()
 
     get_homework()
     get_file()
     get_quiz()
     get_notice()
     # get_attendance()
-
-    f.close()
 
     conn.commit()
     cur.close()
